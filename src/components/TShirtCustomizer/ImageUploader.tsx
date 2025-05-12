@@ -1,71 +1,101 @@
-import React, { useRef, useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 interface ImageUploaderProps {
-  onImageUpload: (file: File) => void;
+  onImageUpload: (file: File | null) => void;
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [preview, setPreview] = useState<string>('https://picsum.photos/200/300');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
     if (e.type === 'dragenter' || e.type === 'dragover') {
-      setIsDragging(true);
+      setDragActive(true);
     } else if (e.type === 'dragleave') {
-      setIsDragging(false);
+      setDragActive(false);
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      handleFiles(files[0]);
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
     }
   };
 
-  const handleFiles = (file: File) => {
-    if (file.type.startsWith('image/')) {
-      setPreview(URL.createObjectURL(file));
-      onImageUpload(file);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
     }
+  };
+
+  const handleFile = (file: File) => {
+    // Check if file is an image
+    if (file.type.match('image.*')) {
+      onImageUpload(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const onButtonClick = () => {
+    inputRef.current?.click();
   };
 
   return (
-    <div
-      className={`border-2 border-dashed rounded-lg p-4 text-center ${
-        isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-      }`}
-      onDragEnter={handleDrag}
-      onDragLeave={handleDrag}
-      onDragOver={handleDrag}
-      onDrop={handleDrop}
-    >
-      <img
-        src={preview}
-        alt="Preview"
-        className="w-32 h-32 mx-auto mb-4 object-cover"
-      />
-      <p className="mb-2">Drop image here or</p>
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
+    <div className="bg-white rounded-lg shadow-md p-4">
+      <h3 className="text-lg font-medium mb-2">Upload Design</h3>
+      
+      <div 
+        className={`border-2 border-dashed rounded-lg p-6 text-center ${
+          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+        }`}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
       >
-        Select File
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => e.target.files?.[0] && handleFiles(e.target.files[0])}
-        className="hidden"
-      />
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleChange}
+          className="hidden"
+        />
+        
+        {previewUrl ? (
+          <div className="mb-4">
+            <img 
+              src={previewUrl} 
+              alt="Preview" 
+              className="max-h-40 mx-auto"
+            />
+          </div>
+        ) : (
+          <div className="text-gray-500 mb-4">
+            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p>Drop an image here</p>
+          </div>
+        )}
+        
+        <button
+          type="button"
+          onClick={onButtonClick}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+        >
+          {previewUrl ? 'Change Image' : 'Upload Image'}
+        </button>
+      </div>
     </div>
   );
 };

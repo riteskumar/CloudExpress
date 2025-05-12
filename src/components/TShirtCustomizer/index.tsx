@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { ThemeProvider, useTheme } from './ThemeContext';
-import TShirtForm from './TShirtForm';
-import ImageUploader from './ImageUploader';
-import TShirtPreview from './TShirtPreview';
-import { useForm } from 'react-hook-form';
+import React, { useState } from "react";
+import { ThemeProvider, useTheme } from "./ThemeContext";
+import TShirtForm from "./TShirtForm";
+import ImageUploader from "./ImageUploader";
+import TShirtPreview from "./TShirtPreview";
+import ThreeJsPreview from "./ThreeJsPreview";
 
 interface FormData {
   height: number;
@@ -15,65 +15,84 @@ interface FormData {
 
 const TShirtCustomizer: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const { watch } = useForm<FormData>({
-    defaultValues: {
-      height: 180,
-      weight: 80,
-      build: 'athletic',
-      text: '',
-      tshirtColor: 'white'
-    }
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [is3DMode, setIs3DMode] = useState(false);
+  const [formData, setFormData] = useState<Partial<FormData>>({
+    height: 180,
+    weight: 80,
+    build: "athletic",
+    text: "",
+    tshirtColor: "navy",
   });
 
   const handleKeyPress = (e: KeyboardEvent) => {
-    if (e.altKey && e.key === 'q') {
-      setTheme(theme === 'minimal' ? 'retro' : 
-               theme === 'retro' ? 'modern' : 'minimal');
+    if (e.altKey && e.key === "q") {
+      setIs3DMode(!is3DMode);
     }
   };
 
   React.useEffect(() => {
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [theme]);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [is3DMode]);
 
-  const themeStyles = {
-    minimal: 'bg-gray-50',
-    retro: 'bg-gradient-to-r from-purple-100 to-pink-100',
-    modern: 'bg-gray-800'
+  const handleFormChange = (data: Partial<FormData>) => {
+    setFormData(data);
+  };
+
+  const handleImageUpload = (file: File | null) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setSelectedImage(null);
+    }
   };
 
   return (
-    <div className={`min-h-screen ${themeStyles[theme]} p-8`}>
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">T-Shirt Customizer</h1>
-        
+    <div className={`theme-${theme} min-h-screen p-6`}>
+      <div className="container mx-auto">
+        <h1 className="text-3xl font-bold mb-8 text-center">
+          POD T-Shirt Customizer
+        </h1>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <ImageUploader onImageUpload={setSelectedImage} />
-            <div className="mt-8">
-              <TShirtForm />
-            </div>
-          </div>
-          
-          <div className="sticky top-4">
-            <TShirtPreview
-              color={watch('tshirtColor')}
-              text={watch('text')}
-              image={selectedImage ? URL.createObjectURL(selectedImage) : undefined}
+          <div className="space-y-6">
+            <TShirtForm
+              onFormChange={handleFormChange}
+              defaultValues={formData}
             />
+
+            <ImageUploader onImageUpload={handleImageUpload} />
           </div>
+          <div>
+            {is3DMode ? (
+              <ThreeJsPreview
+                color={formData.tshirtColor || "navy"}
+                text={formData.text}
+                image={selectedImage || undefined}
+              />
+            ) : (
+              <TShirtPreview
+                color={formData.tshirtColor || "navy"}
+                text={formData.text}
+                image={selectedImage || undefined}
+              />
+            )
+            
+            }
+            
+          </div>
+         
         </div>
       </div>
     </div>
   );
 };
 
-const WrappedTShirtCustomizer: React.FC = () => (
-  <ThemeProvider>
-    <TShirtCustomizer />
-  </ThemeProvider>
-);
-
-export default WrappedTShirtCustomizer;
+export default TShirtCustomizer;

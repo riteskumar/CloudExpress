@@ -1,110 +1,125 @@
-import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { useTheme } from './ThemeContext';
+import React from 'react';
+import { useForm, Controller } from 'react-hook-form';
 
-interface FormInputs {
+interface FormData {
   height: number;
   weight: number;
   build: string;
   text: string;
-  color: string;
+  tshirtColor: string;
 }
 
-const TShirtForm: React.FC = () => {
-  const { theme } = useTheme();
-  const { register, watch, setValue, formState: { errors } } = useForm<FormInputs>({
+interface TShirtFormProps {
+  onFormChange: (data: Partial<FormData>) => void;
+  defaultValues?: Partial<FormData>;
+}
+
+const TShirtForm: React.FC<TShirtFormProps> = ({ onFormChange, defaultValues }) => {
+  const { control, register, watch } = useForm<FormData>({
     defaultValues: {
       height: 180,
       weight: 80,
       build: 'athletic',
       text: '',
-      color: 'white'
+      tshirtColor: 'navy',
+      ...defaultValues
     }
   });
 
-  const customText = watch('text');
-  const lineCount = customText?.split('\n').length || 0;
-
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.altKey && e.key === 'q') {
-        // Theme switching logic will be handled in the parent component
-      }
-    };
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
-
-  const themeStyles = {
-    minimal: 'bg-white text-gray-800',
-    modern: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-    retro: 'bg-gray-900 text-white'
-  };
+  // Watch for changes in the form and notify parent component
+  React.useEffect(() => {
+    const subscription = watch((value) => {
+      onFormChange(value);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, onFormChange]);
 
   return (
-    <div className={`p-4 rounded-lg ${themeStyles[theme]}`}>
-      <div className="grid grid-cols-1 gap-4">
-        <div>
-          <label className="block mb-2">Height (cm)</label>
-          <input
-            type="number"
-            {...register('height')}
-            className="w-full p-2 border rounded"
-          />
+    <div className="bg-white rounded-lg shadow-md p-4">
+      <div className="mb-4">
+        <h3 className="text-lg font-medium mb-2">Customize Your T-Shirt</h3>
+        
+        {/* Textbox-like container for measurements */}
+        <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="flex items-center mb-3">
+            <label className="w-24 text-sm font-medium">Height:</label>
+            <div className="flex-1 relative">
+              <Controller
+                name="height"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    {...field}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    min="140"
+                    max="220"
+                  />
+                )}
+              />
+              <span className="absolute right-3 top-2 text-gray-500">cm</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center mb-3">
+            <label className="w-24 text-sm font-medium">Weight:</label>
+            <div className="flex-1 relative">
+              <Controller
+                name="weight"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    {...field}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    min="40"
+                    max="150"
+                  />
+                )}
+              />
+              <span className="absolute right-3 top-2 text-gray-500">kg</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center">
+            <label className="w-24 text-sm font-medium">Build:</label>
+            <select
+              {...register('build')}
+              className="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="lean">Lean</option>
+              <option value="regular">Regular</option>
+              <option value="athletic">Athletic</option>
+              <option value="big">Big</option>
+            </select>
+          </div>
         </div>
-
-        <div>
-          <label className="block mb-2">Weight (kg)</label>
-          <input
-            type="number"
-            {...register('weight')}
-            className="w-full p-2 border rounded"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2">Build</label>
-          <select
-            {...register('build')}
-            className="w-full p-2 border rounded"
-          >
-            <option value="lean">Lean</option>
-            <option value="regular">Regular</option>
-            <option value="athletic">Athletic</option>
-            <option value="big">Big</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-2">
-            Custom Text (max 3 lines) - {lineCount}/3 lines
-          </label>
-          <textarea
-            {...register('text', {
-              validate: {
-                maxLines: (value) =>
-                  value.split('\n').length <= 3 || 'Maximum 3 lines allowed'
-              }
-            })}
-            maxLength={200}
-            rows={3}
-            className={`w-full p-2 border rounded ${
-              errors.text ? 'border-red-500' : ''
-            }`}
-            placeholder="Enter your custom text here..."
-            onChange={(e) => {
-              const lines = e.target.value.split('\n');
-              if (lines.length > 3) {
-                setValue('text', lines.slice(0, 3).join('\n'));
-              }
-            }}
-          />
-          {errors.text && (
-            <span className="text-red-500 text-sm mt-1">
-              {errors.text.message}
-            </span>
-          )}
-        </div>
+      </div>
+      
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">T-Shirt Color</label>
+        <select
+          {...register('tshirtColor')}
+          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="navy">Navy</option>
+          <option value="white">White</option>
+          <option value="black">Black</option>
+          <option value="gray">Gray</option>
+          <option value="blue">Blue</option>
+          <option value="red">Red</option>
+        </select>
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Custom Text (max 3 lines)</label>
+        <textarea
+          {...register('text')}
+          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+          rows={3}
+          maxLength={180}
+          placeholder="Enter text to print on your t-shirt..."
+        />
       </div>
     </div>
   );
